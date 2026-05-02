@@ -108,7 +108,7 @@
     class="ui-font"
     style="background: var(--wmf-bg); color: var(--wmf-text)"
   >
-    <!-- ─── HEADER (matches Tool A) ─────────────────────────── -->
+    <!-- ─── HEADER ─────────────────────────────────────────── -->
     <header
       class="bg-white border-b"
       style="border-color: var(--wmf-border-soft)"
@@ -236,7 +236,6 @@
       <section id="result" class="hidden space-y-5">
         <!-- File card with preview + facts -->
         <div class="grid lg:grid-cols-3 gap-4">
-          <!-- Preview -->
           <!-- Preview (split into Original / Converted) -->
           <div
             class="bg-white rounded-md border"
@@ -732,7 +731,7 @@
         </div>
       </section>
 
-      <!-- ─── FOOTER (matches Tool A) ────────────────────────── -->
+      <!-- ─── FOOTER ────────────────────────── -->
       <footer
         class="mt-12 pt-6 border-t text-xs"
         style="
@@ -894,6 +893,7 @@
 
         inspect(f);
       }
+
       async function inspect(f) {
         const fd = new FormData();
         fd.append("file", f);
@@ -973,7 +973,7 @@
           rows.push(`
             <div class="grid grid-cols-3 gap-2 py-1 border-b last:border-0"
                  style="border-color: var(--wmf-border-soft);">
-              <div class="mono text-xs ${isSensitive ? "" : ""}"
+              <div class="mono text-xs"
                    style="color: ${isSensitive ? "var(--wmf-warning)" : "var(--wmf-text)"};">
                 ${k}${isSensitive ? " 🔒" : ""}
               </div>
@@ -1009,7 +1009,6 @@
       );
 
       // ─── CONVERT ────────────────────────────────────────────
-      x; // ─── CONVERT ────────────────────────────────────────────
       $("convertBtn").addEventListener("click", async () => {
         if (!currentFile) return;
         const cs = $("convertStatus");
@@ -1039,7 +1038,7 @@
           const m = dispo.match(/filename="?([^"]+)"?/);
           const outName = m ? m[1] : "converted";
 
-          // 1. Download (existing behaviour)
+          // 1. Download
           const a = document.createElement("a");
           a.href = URL.createObjectURL(blob);
           a.download = outName;
@@ -1047,7 +1046,7 @@
           a.click();
           a.remove();
 
-          // 2. NEW: show the converted image in the preview pane
+          // 2. Show the converted image in the preview pane
           const previewOut = $("previewOut");
           if (previewOut.dataset.url)
             URL.revokeObjectURL(previewOut.dataset.url);
@@ -1055,7 +1054,7 @@
           previewOut.dataset.url = previewUrl;
           previewOut.src = previewUrl;
 
-          // Reveal the toggle + flip to "Converted"
+          // Reveal toggle and flip to "Converted"
           $("previewToggle").classList.remove("hidden");
           showPreview("converted");
 
@@ -1075,8 +1074,6 @@
           meta.innerHTML = `${origSize} → ${newSize} ${pctText} · ${outName}`;
           meta.classList.remove("hidden");
 
-          // We can stop revoking the download URL after a moment;
-          // previewUrl is kept alive on previewOut.dataset.url
           setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 
           cs.innerHTML = `Done — <span class="mono">${newSize}</span> downloaded.`;
@@ -1099,6 +1096,7 @@
         .forEach((t) =>
           t.addEventListener("click", () => showPreview(t.dataset.side)),
         );
+
       // ─── FILENAME SUGGESTER ─────────────────────────────────
       $("filenameBtn").addEventListener("click", async () => {
         if (!currentFile) return;
