@@ -1098,21 +1098,94 @@
         );
 
       // ─── FILENAME SUGGESTER ─────────────────────────────────
-      $("filenameBtn").addEventListener("click", async () => {
+      // ─── FILENAME SUGGESTER ─────────────────────────────────
+      const filenameOut = $("filenameOut");
+      const filenameHint = $("filenameHint");
+      const filenameBtn = $("filenameBtn");
+
+      async function suggestFilename() {
         if (!currentFile) return;
-        const hint = $("filenameHint").value.trim();
-        const res = await fetch("/api/filename", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filename: currentFile.name, hint }),
-        });
-        const data = await res.json();
-        if (data.error) {
-          $("filenameOut").innerHTML =
-            `<span style="color: var(--wmf-error);">${data.error}</span>`;
+        const hint = filenameHint.value.trim();
+
+        // Require a hint when the original is a camera default —
+        // otherwise the API returns the same useless filename.
+        if (!hint) {
+          filenameOut.innerHTML = `
+            <span style="color: var(--wmf-warning);">
+              Type a brief description above (e.g. "Charminar Hyderabad sunset 2025"), then click Suggest.
+            </span>`;
+          filenameHint.focus();
           return;
         }
-        $("filenameOut").innerHTML = `→ ${data.suggestion}`;
+
+        filenameOut.innerHTML = `<span style="color: var(--wmf-text-muted);">Generating…</span>`;
+
+        try {
+          const res = await fetch("/api/filename", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filename: currentFile.name, hint }),
+          });
+          const data = await res.json();
+          if (data.error) {
+            filenameOut.innerHTML = `<span style="color: var(--wmf-error);">${data.error}</span>`;
+            return;
+          }
+
+          const warnings = (data.warnings || []).join(" · ");
+          filenameOut.innerHTML = `
+            <div class="flex flex-wrap items-center gap-2 mt-1">
+              <span style="color: var(--wmf-text-muted);">Suggested:</span>
+              <code class="mono px-2 py-1 rounded text-sm break-all"
+                    style="background: #eaf3ff; color: var(--wmf-blue-dark); border: 1px solid #c9def5;">
+                ${escapeHtml(data.suggestion)}
+              </code>
+              <button id="copyFnBtn" class="text-xs px-2 py-1 rounded"
+                      style="background: var(--wmf-blue); color: white;">
+                Copy
+              </button>
+            </div>
+            ${warnings ? `<div class="mt-2 text-xs" style="color: var(--wmf-warning);">⚠ ${warnings}</div>` : ""}
+            <div class="mt-2 text-xs" style="color: var(--wmf-text-muted);">
+              Use this name when uploading on
+              <a href="https://commons.wikimedia.org/wiki/Special:UploadWizard"
+                 target="_blank" rel="noopener" class="underline"
+                 style="color: var(--wmf-blue);">Special:UploadWizard</a>.
+            </div>`;
+
+          // Wire up copy button
+          $("copyFnBtn").addEventListener("click", async () => {
+            try {
+              await navigator.clipboard.writeText(data.suggestion);
+              $("copyFnBtn").textContent = "✓ Copied";
+              setTimeout(() => {
+                if ($("copyFnBtn")) $("copyFnBtn").textContent = "Copy";
+              }, 1500);
+            } catch {
+              // Fallback for browsers without Clipboard API
+              const textarea = document.createElement("textarea");
+              textarea.value = data.suggestion;
+              document.body.appendChild(textarea);
+              textarea.select();
+              document.execCommand("copy");
+              textarea.remove();
+              $("copyFnBtn").textContent = "✓ Copied";
+              setTimeout(() => {
+                if ($("copyFnBtn")) $("copyFnBtn").textContent = "Copy";
+              }, 1500);
+            }
+          });
+        } catch (e) {
+          filenameOut.innerHTML = `<span style="color: var(--wmf-error);">Network error: ${e.message}</span>`;
+        }
+      }
+
+      filenameBtn.addEventListener("click", suggestFilename);
+      filenameHint.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          suggestFilename();
+        }
       });
     </script>
     {% endraw %}
